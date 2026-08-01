@@ -7,6 +7,7 @@ build/
 
 # Vendor docs / captured API references
 reference/
+design/
 
 # Working material kept locally, not published
 archive/

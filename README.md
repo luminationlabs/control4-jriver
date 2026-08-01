@@ -9,6 +9,10 @@ room remote when it's on a display.
 > jumping, Theater View control, room selection and artwork all confirmed on hardware. See
 > *Known limitations* below.
 
+![Browsing a library and the Now Playing screen on a Control4 Halo Touch remote](docs/images/halo-remote.jpg)
+
+*Left: an artist's tracks, with Play All and Shuffle All. Right: Now Playing with album artwork.*
+
 ## Design
 
 Everything — architecture, MCWS integration, proxy choice, the defect list the rewrite

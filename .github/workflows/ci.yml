@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install lxml
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4 luarocks
+          sudo luarocks install luacheck
+
+      # The packager is cloned by build.sh on first run; caching it keeps the
+      # job off the network on repeat runs.
+      - name: Cache driverpackager
+        uses: actions/cache@v4
+        with:
+          path: .driverpackager
+          key: driverpackager-${{ runner.os }}
+
+      - name: Lint
+        run: ./build.sh validate
+
+      - name: Test
+        run: lua5.4 test-driver.lua
+
+      # Also fails on a broken asset path or a package/namespace mismatch,
+      # which are silent at runtime.
+      - name: Build
+        run: ./build.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jriver_media_center-c4z
+          path: build/jriver_media_center.c4z
+          if-no-files-found: error

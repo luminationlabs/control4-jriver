@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>JRiver Media Center</title>
+<style>
+body{font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif;line-height:1.5;margin:24px;max-width:44em;color:#222}
+h1{font-size:1.4em} h2{font-size:1.1em;margin-top:1.6em;border-bottom:1px solid #ddd;padding-bottom:.2em}
+table{border-collapse:collapse;margin:.6em 0} td,th{border:1px solid #ccc;padding:4px 8px;text-align:left;font-size:.95em}
+code{background:#f4f4f4;padding:1px 4px;border-radius:3px} .note{background:#fbf7e6;border-left:3px solid #d8b400;padding:8px 12px;margin:1em 0}
+</style></head>
+<body>
+<h1>JRiver Media Center</h1>
+<p>Controls JRiver Media Center over its MCWS web interface. Browse and play music from any
+Navigator without a screen, and drive Media Center's own Theater View from the room remote
+when it is on a display.</p>
+
+<h2>Setup</h2>
+<ol>
+<li>In Media Center, enable <b>Options &rarr; Media Network</b> and note the port (default 52199).</li>
+<li>Set the driver's <b>JRiver Host</b> and <b>JRiver Port</b> properties.</li>
+<li>Connect <b>JRiver Virtual Switcher &rarr; HDMI OUTPUT</b> to the AVR input the Media Center
+machine is plugged into. The internal links between the three proxies bind automatically.</li>
+<li>Use <b>Test Connection</b> to confirm the driver can reach Media Center; it logs the version
+and the available zones.</li>
+</ol>
+
+<div class="note"><b>Network:</b> every Navigator that displays album art fetches it directly from
+Media Center, not through the controller. On a segmented network each touchscreen and remote
+needs its own route to the Media Center host, not just the controller.</div>
+
+<h2>Properties</h2>
+<table>
+<tr><th>Property</th><th>Default</th><th>Description</th></tr>
+<tr><td>JRiver Host / Port</td><td>52199</td><td>MCWS address of the Media Center machine.</td></tr>
+<tr><td>Zone</td><td>-1</td><td><code>-1</code> follows the zone selected in Media Center.</td></tr>
+<tr><td>Poll Interval</td><td>2</td><td>Seconds between state updates. Drops to 30s when idle.</td></tr>
+<tr><td>Cache TTL</td><td>300</td><td>Browse tree cache lifetime.</td></tr>
+<tr><td>Take Focus on Key</td><td>Off</td><td>Raise Media Center when sending navigation keys.</td></tr>
+<tr><td>Enter Theater View on Select</td><td>On</td><td>Switch to Theater View when the room selects the video source.</td></tr>
+<tr><td>Leave Theater View on Deselect</td><td>On</td><td>Return to the standard view when deselected.</td></tr>
+<tr><td>Leave Theater View on Listen</td><td>On</td><td>Return to the standard view when the music service is selected.</td></tr>
+<tr><td>Handle Volume</td><td>Off</td><td>Leave volume to the AVR unless enabled.</td></tr>
+<tr><td>Username / Password</td><td>empty</td><td>Only if Media Center's Media Network authentication is enabled.</td></tr>
+<tr><td>Debug Mode</td><td>Off</td><td>Verbose logging, including any unrecognised remote key.</td></tr>
+</table>
+
+<h2>Browsing</h2>
+<p>The Artists, Albums and Playlists tabs map onto Media Center's own browse tree, and
+<b>More</b> opens the Audio node so Genre, Composer, Recent and anything else defined by
+Media Center's Browse Rules stays reachable. Change the rules in Media Center and the driver
+follows without modification.</p>
+
+<p><b>Play All</b> and <b>Shuffle All</b> appear on any item you drill into &mdash; an artist,
+a genre, an album &mdash; and play everything beneath it. They are not offered at the top of a
+tab, where they would mean the whole library.</p>
+
+<h2>Automation</h2>
+<p>The driver publishes read-only variables (<code>Playing</code>, <code>Track</code>,
+<code>Artist</code>, <code>Album</code>, <code>Position</code>, <code>Duration</code>,
+<code>Shuffle</code>, <code>Repeat</code>, <code>Theater View</code>, <code>Connected</code>
+and more), fires events for track changes, playback state, Theater View and connection loss,
+and accepts programming commands including <b>Play Path</b> and <b>Play Playlist</b>, which
+address content by name rather than by Media Center's internal IDs.</p>
+<p>Composer lists the driver's programming under one of its device entries. That is cosmetic:
+these commands act on Media Center directly and work in either Listen or Watch mode, or with
+nothing selected. The transport each proxy exposes separately is what depends on the room's
+current selection.</p>
+
+<h2>Troubleshooting</h2>
+<p><b>Driver cannot reach Media Center.</b> Confirm Media Network is enabled and test with
+<code>curl http://&lt;host&gt;:52199/MCWS/v1/Alive</code>.</p>
+<p><b>Album art missing on one Navigator only.</b> That Navigator has no route to the Media
+Center host. See the note above.</p>
+<p><b>A remote key does nothing.</b> Turn on Debug Mode and press it. Every unrecognised proxy
+command is logged once by name.</p>
+<p><b>No progress bar on Now Playing.</b> The driver broadcasts progress, but not every
+Navigator renders a progress bar; Halo Touch appears not to. Elapsed and total time are still
+available on the queue rows.</p>
+<h2>Credits</h2>
+<p>Tab and Now Playing glyphs are <a href="https://feathericons.com/">Feather</a> icons by Cole
+Bemis, used under the MIT License. Device and branding marks are original work.</p>
+</body>
+</html>

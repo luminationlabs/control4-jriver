@@ -1,0 +1,25 @@
+# Build output
+build/
+*.c4z
+
+# Driverpackager tool (auto-downloaded)
+.driverpackager/
+
+# Vendor docs / captured API references
+reference/
+
+# Working material kept locally, not published
+archive/
+
+# macOS
+.DS_Store
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log

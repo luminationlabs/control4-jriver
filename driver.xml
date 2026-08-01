@@ -1,0 +1,993 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<devicedata>
+	<copyright>Copyright 2026 Lumination Labs, Inc. MIT License.</copyright>
+	<creator>Lumination Labs, Inc.</creator>
+	<manufacturer>JRiver</manufacturer>
+	<name>JRiver Media Center</name>
+	<model>JRiver Media Center</model>
+	<created>2026-07-31 00:00</created>
+	<modified>07/31/2026 12:00 PM</modified>
+	<version>1</version>
+	<control>lua_gen</control>
+	<driver>DriverWorks</driver>
+	<minimum_os_version>3.0.0</minimum_os_version>
+	<small image_source="c4z">icons/device_sm.png</small>
+	<large image_source="c4z">icons/device_lg.png</large>
+	<composer_categories>
+		<category>media_player</category>
+	</composer_categories>
+
+	<config>
+		<script file="driver.lua"/>
+		<documentation file="www/documentation.html"/>
+		<properties>
+			<property>
+				<name>Driver Version</name>
+				<default></default>
+				<type>STRING</type>
+				<readonly>true</readonly>
+			</property>
+			<property>
+				<name>JRiver Host</name>
+				<type>STRING</type>
+				<default></default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>JRiver Port</name>
+				<type>STRING</type>
+				<default>52199</default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>Zone</name>
+				<type>STRING</type>
+				<default>-1</default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>Poll Interval</name>
+				<type>LIST</type>
+				<items>
+					<item>1</item>
+					<item>2</item>
+					<item>5</item>
+				</items>
+				<default>2</default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>Cache TTL</name>
+				<type>LIST</type>
+				<items>
+					<item>60</item>
+					<item>300</item>
+					<item>900</item>
+					<item>3600</item>
+				</items>
+				<default>300</default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>Take Focus on Key</name>
+				<type>LIST</type>
+				<items>
+					<item>Off</item>
+					<item>On</item>
+				</items>
+				<default>Off</default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>Enter Theater View on Select</name>
+				<type>LIST</type>
+				<items>
+					<item>Off</item>
+					<item>On</item>
+				</items>
+				<default>On</default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>Leave Theater View on Deselect</name>
+				<type>LIST</type>
+				<items>
+					<item>Off</item>
+					<item>On</item>
+				</items>
+				<default>On</default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>Leave Theater View on Listen</name>
+				<type>LIST</type>
+				<items>
+					<item>Off</item>
+					<item>On</item>
+				</items>
+				<default>On</default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>Handle Volume</name>
+				<type>LIST</type>
+				<items>
+					<item>Off</item>
+					<item>On</item>
+				</items>
+				<default>Off</default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>Username</name>
+				<type>STRING</type>
+				<default></default>
+				<readonly>false</readonly>
+			</property>
+			<!--
+				STRING, not PASSWORD: Composer rejects PASSWORD as a property type
+				("Object reference not set to an instance of an object") and refuses to
+				load the driver. The value is therefore shown in clear text. Only needed
+				if Media Center's Media Network authentication is enabled.
+			-->
+			<property>
+				<name>Password</name>
+				<type>STRING</type>
+				<default></default>
+				<readonly>false</readonly>
+			</property>
+			<property>
+				<name>UI Mode</name>
+				<type>STRING</type>
+				<default></default>
+				<readonly>true</readonly>
+			</property>
+			<property>
+				<name>Debug Mode</name>
+				<type>LIST</type>
+				<items>
+					<item>Off</item>
+					<item>On</item>
+				</items>
+				<default>Off</default>
+				<readonly>false</readonly>
+			</property>
+		</properties>
+		<!--
+			Programming surface. Variables and events let programming react to what
+			Media Center is doing; commands let it drive Media Center directly,
+			including things the Navigator UI has no button for.
+		-->
+		<events>
+			<event><id>1</id><name>Track Changed</name><description>A different track started playing</description></event>
+			<event><id>2</id><name>Playback Started</name><description>Playback started or resumed</description></event>
+			<event><id>3</id><name>Playback Paused</name><description>Playback was paused</description></event>
+			<event><id>4</id><name>Playback Stopped</name><description>Playback stopped</description></event>
+			<event><id>5</id><name>Theater View Entered</name><description>Media Center switched to Theater View</description></event>
+			<event><id>6</id><name>Theater View Exited</name><description>Media Center left Theater View</description></event>
+			<event><id>7</id><name>Connection Lost</name><description>Media Center stopped responding</description></event>
+			<event><id>8</id><name>Connection Restored</name><description>Media Center started responding again</description></event>
+		</events>
+		<commands>
+			<command><name>JRiver Play</name><description>JRiver: play</description></command>
+			<command><name>JRiver Pause</name><description>JRiver: pause</description></command>
+			<command><name>JRiver Stop</name><description>JRiver: stop</description></command>
+			<command><name>JRiver Next Track</name><description>JRiver: next track</description></command>
+			<command><name>JRiver Previous Track</name><description>JRiver: previous track</description></command>
+
+			<command>
+				<name>Play Path</name>
+				<description>JRiver: play everything under PARAM1</description>
+				<params>
+					<param><name>Browse Path</name><type>STRING</type><default>Audio\Artist</default></param>
+				</params>
+			</command>
+			<command>
+				<name>Shuffle Path</name>
+				<description>JRiver: shuffle everything under PARAM1</description>
+				<params>
+					<param><name>Browse Path</name><type>STRING</type><default>Audio</default></param>
+				</params>
+			</command>
+			<command>
+				<name>Play Playlist</name>
+				<description>JRiver: play the playlist PARAM1</description>
+				<params>
+					<param><name>Playlist Name</name><type>STRING</type><default></default></param>
+					<param><name>Shuffle</name><type>LIST</type><items><item>No</item><item>Yes</item></items><default>No</default></param>
+				</params>
+			</command>
+
+			<command>
+				<name>Set Shuffle</name>
+				<description>JRiver: set shuffle PARAM1</description>
+				<params>
+					<param><name>Mode</name><type>LIST</type><items><item>Off</item><item>On</item></items><default>On</default></param>
+				</params>
+			</command>
+			<command>
+				<name>Set Repeat</name>
+				<description>JRiver: set repeat PARAM1</description>
+				<params>
+					<param><name>Mode</name><type>LIST</type><items><item>Off</item><item>Playlist</item><item>Track</item></items><default>Off</default></param>
+				</params>
+			</command>
+			<command>
+				<name>Seek</name>
+				<description>JRiver: seek to PARAM1 seconds</description>
+				<params>
+					<param><name>Seconds</name><type>NUMBER</type><default>0</default></param>
+				</params>
+			</command>
+
+			<command>
+				<name>Enter Theater View</name>
+				<description>JRiver: show Theater View at PARAM1</description>
+				<params>
+					<param><name>Section</name><type>LIST</type><items><item>Toggle</item><item>Home</item><item>Playing Now</item><item>Audio</item></items><default>Audio</default></param>
+				</params>
+			</command>
+			<command><name>Leave Theater View</name><description>JRiver: return to the standard view</description></command>
+			<command>
+				<name>Send Key</name>
+				<description>JRiver: send the key sequence PARAM1</description>
+				<params>
+					<param><name>Keys</name><type>STRING</type><default>Down</default></param>
+				</params>
+			</command>
+			<command>
+				<name>Send MCC</name>
+				<description>JRiver: send Media Core Command PARAM1 with parameter PARAM2</description>
+				<params>
+					<param><name>Command</name><type>NUMBER</type><default>10000</default></param>
+					<param><name>Parameter</name><type>NUMBER</type><default>0</default></param>
+				</params>
+			</command>
+		</commands>
+		<actions>
+			<action>
+				<name>Refresh Library Cache</name>
+				<command>RefreshCache</command>
+			</action>
+			<action>
+				<name>Test Connection</name>
+				<command>TestConnection</command>
+			</action>
+		</actions>
+	</config>
+
+	<capabilities>
+		<hide_in_list_nav>False</hide_in_list_nav>
+		<hide_in_media>True</hide_in_media>
+		<digital_audio_support>False</digital_audio_support>
+		<can_scan_media>False</can_scan_media>
+		<media_type>2</media_type>
+		<ui_selects_device>True</ui_selects_device>
+		<!--
+			Media Center plays its own audio out over HDMI rather than through
+			Control4's DIGITAL_AUDIO. Declaring that is what allows media metadata and
+			transport controls - including the Now Playing progress bar - to render on
+			remote-class devices such as the Neeo, and its successor the Halo.
+		-->
+		<list_nowplaying_non_c4>True</list_nowplaying_non_c4>
+
+		<navigator_display_option proxybindingid="5002">
+			<display_icons>
+				<Icon width="20" height="20">controller://driver/jriver_media_center/icons/device_20.png</Icon>
+				<Icon width="30" height="30">controller://driver/jriver_media_center/icons/device_30.png</Icon>
+				<Icon width="40" height="40">controller://driver/jriver_media_center/icons/device_40.png</Icon>
+				<Icon width="50" height="50">controller://driver/jriver_media_center/icons/device_50.png</Icon>
+				<Icon width="60" height="60">controller://driver/jriver_media_center/icons/device_60.png</Icon>
+				<Icon width="70" height="70">controller://driver/jriver_media_center/icons/device_70.png</Icon>
+				<Icon width="80" height="80">controller://driver/jriver_media_center/icons/device_80.png</Icon>
+				<Icon width="90" height="90">controller://driver/jriver_media_center/icons/device_90.png</Icon>
+				<Icon width="100" height="100">controller://driver/jriver_media_center/icons/device_100.png</Icon>
+				<Icon width="110" height="110">controller://driver/jriver_media_center/icons/device_110.png</Icon>
+				<Icon width="120" height="120">controller://driver/jriver_media_center/icons/device_120.png</Icon>
+				<Icon width="130" height="130">controller://driver/jriver_media_center/icons/device_130.png</Icon>
+				<Icon width="140" height="140">controller://driver/jriver_media_center/icons/device_140.png</Icon>
+				<Icon width="300" height="300">controller://driver/jriver_media_center/icons/device_300.png</Icon>
+			</display_icons>
+		</navigator_display_option>
+
+		<!--
+			Watch mode (media_player proxy, binding 5002). Declaring SCAN_FWD/SCAN_REV
+			is what opts the driver into the remote's << and >> keys, and DPAD is what
+			opts it into the directional pad. Modelled on the Apple TV driver, which is
+			the closest working example of a minimal HDMI source with full navigation.
+		-->
+		<transports>
+			<supported>PLAY, PAUSE, STOP, SKIP_FWD, SKIP_REV, SCAN_FWD, SCAN_REV, DPAD</supported>
+			<dashboard>
+				<buttons>
+					<button><id>SCAN_REV</id><name>SCAN_REV</name><command>SCAN_REV</command><type>PROXY</type></button>
+					<button><id>SKIP_REV</id><name>SKIP_REV</name><command>SKIP_REV</command><type>PROXY</type></button>
+					<button><id>PLAY</id><name>PLAY</name><command>PLAY</command><type>PROXY</type></button>
+					<button><id>PAUSE</id><name>PAUSE</name><command>PAUSE</command><type>PROXY</type></button>
+					<button><id>STOP</id><name>STOP</name><command>STOP</command><type>PROXY</type></button>
+					<button><id>SKIP_FWD</id><name>SKIP_FWD</name><command>SKIP_FWD</command><type>PROXY</type></button>
+					<button><id>SCAN_FWD</id><name>SCAN_FWD</name><command>SCAN_FWD</command><type>PROXY</type></button>
+				</buttons>
+				<default_large>SCAN_REV, SKIP_REV, PLAY, PAUSE, SKIP_FWD, SCAN_FWD</default_large>
+				<default_small>SKIP_REV, PLAY, PAUSE, SKIP_FWD</default_small>
+			</dashboard>
+			<button_bar>
+				<buttons>
+					<button><id>HOME</id><name>Theater Home</name><command>GUIDE</command><type>PROXY</type></button>
+					<button><id>MENU</id><name>Menu</name><command>MENU</command><type>PROXY</type></button>
+					<button><id>INFO</id><name>Info</name><command>INFO</command><type>PROXY</type></button>
+				</buttons>
+				<default_buttons>HOME, MENU</default_buttons>
+			</button_bar>
+		</transports>
+
+		<UI xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" proxybindingid="5001">
+			<DeviceIcon>device</DeviceIcon>
+			<BrandingIcon>branding</BrandingIcon>
+
+			<Icons>
+				<IconGroup id="branding">
+					<Icon width="70" height="70">controller://driver/jriver_media_center/icons/branding_70.png</Icon>
+					<Icon width="140" height="140">controller://driver/jriver_media_center/icons/branding_140.png</Icon>
+					<Icon width="300" height="300">controller://driver/jriver_media_center/icons/branding_300.png</Icon>
+				</IconGroup>
+				<IconGroup id="device">
+					<Icon width="70" height="70">controller://driver/jriver_media_center/icons/device_70.png</Icon>
+					<Icon width="140" height="140">controller://driver/jriver_media_center/icons/device_140.png</Icon>
+					<Icon width="300" height="300">controller://driver/jriver_media_center/icons/device_300.png</Icon>
+				</IconGroup>
+				<IconGroup id="tab_artists">
+					<Icon width="70" height="70">controller://driver/jriver_media_center/icons/tab_artists_70.png</Icon>
+					<Icon width="140" height="140">controller://driver/jriver_media_center/icons/tab_artists_140.png</Icon>
+				</IconGroup>
+				<IconGroup id="tab_albums">
+					<Icon width="70" height="70">controller://driver/jriver_media_center/icons/tab_albums_70.png</Icon>
+					<Icon width="140" height="140">controller://driver/jriver_media_center/icons/tab_albums_140.png</Icon>
+				</IconGroup>
+				<IconGroup id="tab_playlists">
+					<Icon width="70" height="70">controller://driver/jriver_media_center/icons/tab_playlists_70.png</Icon>
+					<Icon width="140" height="140">controller://driver/jriver_media_center/icons/tab_playlists_140.png</Icon>
+				</IconGroup>
+				<IconGroup id="tab_more">
+					<Icon width="70" height="70">controller://driver/jriver_media_center/icons/tab_more_70.png</Icon>
+					<Icon width="140" height="140">controller://driver/jriver_media_center/icons/tab_more_140.png</Icon>
+				</IconGroup>
+				<IconGroup id="np_shuffle">
+					<Icon width="70" height="70">controller://driver/jriver_media_center/icons/np_shuffle_70.png</Icon>
+					<Icon width="140" height="140">controller://driver/jriver_media_center/icons/np_shuffle_140.png</Icon>
+				</IconGroup>
+				<IconGroup id="np_shuffle_active">
+					<Icon width="70" height="70">controller://driver/jriver_media_center/icons/np_shuffle_active_70.png</Icon>
+					<Icon width="140" height="140">controller://driver/jriver_media_center/icons/np_shuffle_active_140.png</Icon>
+				</IconGroup>
+				<IconGroup id="np_repeat">
+					<Icon width="70" height="70">controller://driver/jriver_media_center/icons/np_repeat_70.png</Icon>
+					<Icon width="140" height="140">controller://driver/jriver_media_center/icons/np_repeat_140.png</Icon>
+				</IconGroup>
+				<IconGroup id="np_repeat_active">
+					<Icon width="70" height="70">controller://driver/jriver_media_center/icons/np_repeat_active_70.png</Icon>
+					<Icon width="140" height="140">controller://driver/jriver_media_center/icons/np_repeat_active_140.png</Icon>
+				</IconGroup>
+			</Icons>
+
+			<!--
+				Each tab lands on a node of Media Center's own browse tree, resolved at
+				runtime by name (see TAB_PATHS in driver.lua). "More" opens the Audio node
+				so Genre, Composer, Recent, Highly Rated and anything else defined by MC's
+				Browse Rules stays reachable without a driver change.
+			-->
+			<Tabs>
+				<Tab>
+					<Id>Artists</Id>
+					<Name>Artists</Name>
+					<IconId>tab_artists</IconId>
+					<ScreenId>ArtistsScreen</ScreenId>
+				</Tab>
+				<Tab>
+					<Id>Albums</Id>
+					<Name>Albums</Name>
+					<IconId>tab_albums</IconId>
+					<ScreenId>AlbumsScreen</ScreenId>
+				</Tab>
+				<Tab>
+					<Id>Playlists</Id>
+					<Name>Playlists</Name>
+					<IconId>tab_playlists</IconId>
+					<ScreenId>PlaylistsScreen</ScreenId>
+				</Tab>
+				<Tab>
+					<Id>More</Id>
+					<Name>More</Name>
+					<IconId>tab_more</IconId>
+					<ScreenId>MoreScreen</ScreenId>
+				</Tab>
+			</Tabs>
+
+			<Screens>
+				<Screen xsi:type="ListScreenType">
+					<Id>ArtistsScreen</Id>
+					<DataCommand>
+						<Name>Browse</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>screenId</Name><Type>SYSTEM</Type><Value>screenId</Value></Param>
+							<Param><Name>tabId</Name><Type>SYSTEM</Type><Value>tabId</Value></Param>
+							<Param><Name>screenDepth</Name><Type>SYSTEM</Type><Value>screenDepth</Value></Param>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+							<Param><Name>itemType</Name><Type>FIRST_SELECTED</Type><Value>itemType</Value></Param>
+						</Params>
+					</DataCommand>
+					<RequiresRefresh>true</RequiresRefresh>
+					<PaginationStyle>NONE</PaginationStyle>
+					<List>
+						<ItemDefaultActionProperty>default_action</ItemDefaultActionProperty>
+						<ItemActionIdsProperty>actions_list</ItemActionIdsProperty>
+						<TitleProperty>title</TitleProperty>
+						<SubTitleProperty>subtitle</SubTitleProperty>
+						<ImageProperty>image_list</ImageProperty>
+						<LengthProperty>duration</LengthProperty>
+						<IsLink><Property>isLink</Property><ValidValues><Value>true</Value></ValidValues></IsLink>
+						<IsHeader><Property>isHeader</Property><ValidValues><Value>true</Value></ValidValues></IsHeader>
+					</List>
+				</Screen>
+
+				<Screen xsi:type="ListScreenType">
+					<Id>AlbumsScreen</Id>
+					<DataCommand>
+						<Name>Browse</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>screenId</Name><Type>SYSTEM</Type><Value>screenId</Value></Param>
+							<Param><Name>tabId</Name><Type>SYSTEM</Type><Value>tabId</Value></Param>
+							<Param><Name>screenDepth</Name><Type>SYSTEM</Type><Value>screenDepth</Value></Param>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+							<Param><Name>itemType</Name><Type>FIRST_SELECTED</Type><Value>itemType</Value></Param>
+						</Params>
+					</DataCommand>
+					<RequiresRefresh>true</RequiresRefresh>
+					<PaginationStyle>NONE</PaginationStyle>
+					<List>
+						<ItemDefaultActionProperty>default_action</ItemDefaultActionProperty>
+						<ItemActionIdsProperty>actions_list</ItemActionIdsProperty>
+						<TitleProperty>title</TitleProperty>
+						<SubTitleProperty>subtitle</SubTitleProperty>
+						<ImageProperty>image_list</ImageProperty>
+						<LengthProperty>duration</LengthProperty>
+						<IsLink><Property>isLink</Property><ValidValues><Value>true</Value></ValidValues></IsLink>
+						<IsHeader><Property>isHeader</Property><ValidValues><Value>true</Value></ValidValues></IsHeader>
+					</List>
+				</Screen>
+
+				<Screen xsi:type="ListScreenType">
+					<Id>PlaylistsScreen</Id>
+					<DataCommand>
+						<Name>Browse</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>screenId</Name><Type>SYSTEM</Type><Value>screenId</Value></Param>
+							<Param><Name>tabId</Name><Type>SYSTEM</Type><Value>tabId</Value></Param>
+							<Param><Name>screenDepth</Name><Type>SYSTEM</Type><Value>screenDepth</Value></Param>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+							<Param><Name>itemType</Name><Type>FIRST_SELECTED</Type><Value>itemType</Value></Param>
+						</Params>
+					</DataCommand>
+					<RequiresRefresh>true</RequiresRefresh>
+					<PaginationStyle>NONE</PaginationStyle>
+					<List>
+						<ItemDefaultActionProperty>default_action</ItemDefaultActionProperty>
+						<ItemActionIdsProperty>actions_list</ItemActionIdsProperty>
+						<TitleProperty>title</TitleProperty>
+						<SubTitleProperty>subtitle</SubTitleProperty>
+						<ImageProperty>image_list</ImageProperty>
+						<LengthProperty>duration</LengthProperty>
+						<IsLink><Property>isLink</Property><ValidValues><Value>true</Value></ValidValues></IsLink>
+						<IsHeader><Property>isHeader</Property><ValidValues><Value>true</Value></ValidValues></IsHeader>
+					</List>
+				</Screen>
+
+				<Screen xsi:type="ListScreenType">
+					<Id>MoreScreen</Id>
+					<DataCommand>
+						<Name>Browse</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>screenId</Name><Type>SYSTEM</Type><Value>screenId</Value></Param>
+							<Param><Name>tabId</Name><Type>SYSTEM</Type><Value>tabId</Value></Param>
+							<Param><Name>screenDepth</Name><Type>SYSTEM</Type><Value>screenDepth</Value></Param>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+							<Param><Name>itemType</Name><Type>FIRST_SELECTED</Type><Value>itemType</Value></Param>
+						</Params>
+					</DataCommand>
+					<RequiresRefresh>true</RequiresRefresh>
+					<PaginationStyle>NONE</PaginationStyle>
+					<List>
+						<ItemDefaultActionProperty>default_action</ItemDefaultActionProperty>
+						<ItemActionIdsProperty>actions_list</ItemActionIdsProperty>
+						<TitleProperty>title</TitleProperty>
+						<SubTitleProperty>subtitle</SubTitleProperty>
+						<ImageProperty>image_list</ImageProperty>
+						<LengthProperty>duration</LengthProperty>
+						<IsLink><Property>isLink</Property><ValidValues><Value>true</Value></ValidValues></IsLink>
+						<IsHeader><Property>isHeader</Property><ValidValues><Value>true</Value></ValidValues></IsHeader>
+					</List>
+				</Screen>
+
+				<!--
+					Every drill-down lands here, including from this screen itself. The
+					browse tree is arbitrarily deep, so this screen recurses; screenDepth
+					tells the Navigator how far in it is.
+				-->
+				<Screen xsi:type="ListScreenType">
+					<Id>BrowseScreen</Id>
+					<DataCommand>
+						<Name>Browse</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>screenId</Name><Type>SYSTEM</Type><Value>screenId</Value></Param>
+							<Param><Name>tabId</Name><Type>SYSTEM</Type><Value>tabId</Value></Param>
+							<Param><Name>screenDepth</Name><Type>SYSTEM</Type><Value>screenDepth</Value></Param>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+							<Param><Name>itemType</Name><Type>FIRST_SELECTED</Type><Value>itemType</Value></Param>
+							<Param><Name>parentId</Name><Type>FIRST_SELECTED</Type><Value>parentId</Value></Param>
+						</Params>
+					</DataCommand>
+					<RequiresRefresh>true</RequiresRefresh>
+					<PaginationStyle>NONE</PaginationStyle>
+					<List>
+						<ItemDefaultActionProperty>default_action</ItemDefaultActionProperty>
+						<ItemActionIdsProperty>actions_list</ItemActionIdsProperty>
+						<TitleProperty>title</TitleProperty>
+						<SubTitleProperty>subtitle</SubTitleProperty>
+						<ImageProperty>image_list</ImageProperty>
+						<LengthProperty>duration</LengthProperty>
+						<IsLink><Property>isLink</Property><ValidValues><Value>true</Value></ValidValues></IsLink>
+						<IsHeader><Property>isHeader</Property><ValidValues><Value>true</Value></ValidValues></IsHeader>
+					</List>
+				</Screen>
+			</Screens>
+
+			<NowPlaying>
+				<ActionIds>Shuffle Repeat</ActionIds>
+				<List>
+					<ItemDefaultActionProperty>default_action</ItemDefaultActionProperty>
+					<ItemActionIdsProperty>actions_list</ItemActionIdsProperty>
+					<TitleProperty>title</TitleProperty>
+					<SubTitleProperty>subtitle</SubTitleProperty>
+					<ImageProperty>image_list</ImageProperty>
+					<LengthProperty>duration</LengthProperty>
+					<IsHeader><Property>isHeader</Property><ValidValues><Value>true</Value></ValidValues></IsHeader>
+				</List>
+			</NowPlaying>
+
+			<Actions>
+				<Action>
+					<Id>SelectItem</Id>
+					<Name>Select</Name>
+					<Command>
+						<Name>SelectItem</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>screenId</Name><Type>SYSTEM</Type><Value>screenId</Value></Param>
+							<Param><Name>tabId</Name><Type>SYSTEM</Type><Value>tabId</Value></Param>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+							<Param><Name>itemType</Name><Type>FIRST_SELECTED</Type><Value>itemType</Value></Param>
+						</Params>
+					</Command>
+				</Action>
+
+				<!-- Node-level actions: everything below a browse node. -->
+				<Action>
+					<Id>PlayNode</Id>
+					<Name>Play</Name>
+					<Command>
+						<Name>PlayNode</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+						</Params>
+					</Command>
+				</Action>
+				<Action>
+					<Id>ShuffleNode</Id>
+					<Name>Shuffle</Name>
+					<Command>
+						<Name>ShuffleNode</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+						</Params>
+					</Command>
+				</Action>
+				<Action>
+					<Id>PlayNodeNext</Id>
+					<Name>Play Next</Name>
+					<Command>
+						<Name>PlayNodeNext</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+						</Params>
+					</Command>
+				</Action>
+				<Action>
+					<Id>AddNode</Id>
+					<Name>Add to Queue</Name>
+					<Command>
+						<Name>AddNode</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+						</Params>
+					</Command>
+				</Action>
+
+				<!-- Track-level actions. parentId carries the album/node context so a
+				     tapped track plays on into the rest of its node. -->
+				<Action>
+					<Id>PlayNow</Id>
+					<Name>Play Now</Name>
+					<Command>
+						<Name>PlayNow</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+							<Param><Name>parentId</Name><Type>FIRST_SELECTED</Type><Value>parentId</Value></Param>
+						</Params>
+					</Command>
+				</Action>
+				<Action>
+					<Id>PlayNext</Id>
+					<Name>Play Next</Name>
+					<Command>
+						<Name>PlayNext</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+							<Param><Name>parentId</Name><Type>FIRST_SELECTED</Type><Value>parentId</Value></Param>
+						</Params>
+					</Command>
+				</Action>
+				<Action>
+					<Id>AddToQueue</Id>
+					<Name>Add to Queue</Name>
+					<Command>
+						<Name>AddToQueue</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>id</Name><Type>FIRST_SELECTED</Type><Value>id</Value></Param>
+							<Param><Name>parentId</Name><Type>FIRST_SELECTED</Type><Value>parentId</Value></Param>
+						</Params>
+					</Command>
+				</Action>
+
+				<!-- Tapping an entry in the Now Playing queue jumps to it. -->
+				<Action>
+					<Id>PlayQueueItem</Id>
+					<Name>Play</Name>
+					<Command>
+						<Name>PlayQueueItem</Name>
+						<Type>PROTOCOL</Type>
+						<Params>
+							<Param><Name>queueIndex</Name><Type>FIRST_SELECTED</Type><Value>queueIndex</Value></Param>
+						</Params>
+					</Command>
+				</Action>
+
+				<Action>
+					<Id>Shuffle</Id>
+					<Name>Shuffle</Name>
+					<IconId>np_shuffle</IconId>
+					<Command>
+						<Name>ToggleShuffle</Name>
+						<Type>PROTOCOL</Type>
+					</Command>
+					<Filters>
+						<Filter>
+							<Type>Change</Type>
+							<Property>shufflemode</Property>
+							<Name>Shuffle Off</Name>
+							<IconId>np_shuffle_active</IconId>
+							<ValidValues><Value>true</Value></ValidValues>
+						</Filter>
+					</Filters>
+				</Action>
+
+				<Action>
+					<Id>Repeat</Id>
+					<Name>Repeat</Name>
+					<IconId>np_repeat</IconId>
+					<Command>
+						<Name>ToggleRepeat</Name>
+						<Type>PROTOCOL</Type>
+					</Command>
+					<Filters>
+						<Filter>
+							<Type>Change</Type>
+							<Property>repeatmode</Property>
+							<Name>Repeat Off</Name>
+							<IconId>np_repeat_active</IconId>
+							<ValidValues><Value>true</Value></ValidValues>
+						</Filter>
+					</Filters>
+				</Action>
+			</Actions>
+
+			<Dashboard>
+				<Transport>
+					<Id>Play</Id>
+					<ButtonType>PLAY</ButtonType>
+					<ReleaseCommand><Name>PLAY</Name><Type>PROTOCOL</Type></ReleaseCommand>
+				</Transport>
+				<Transport>
+					<Id>Pause</Id>
+					<ButtonType>PAUSE</ButtonType>
+					<ReleaseCommand><Name>PAUSE</Name><Type>PROTOCOL</Type></ReleaseCommand>
+				</Transport>
+				<Transport>
+					<Id>Stop</Id>
+					<ButtonType>STOP</ButtonType>
+					<ReleaseCommand><Name>STOP</Name><Type>PROTOCOL</Type></ReleaseCommand>
+				</Transport>
+				<Transport>
+					<Id>SkipRev</Id>
+					<ButtonType>SKIP_REV</ButtonType>
+					<ReleaseCommand><Name>SKIP_REV</Name><Type>PROTOCOL</Type></ReleaseCommand>
+				</Transport>
+				<Transport>
+					<Id>SkipFwd</Id>
+					<ButtonType>SKIP_FWD</ButtonType>
+					<ReleaseCommand><Name>SKIP_FWD</Name><Type>PROTOCOL</Type></ReleaseCommand>
+				</Transport>
+			</Dashboard>
+		</UI>
+	</capabilities>
+
+	<proxies qty="3">
+		<!-- Listen: browse and control from a navigator, no screen required. -->
+		<proxy proxybindingid="5001" name="JRiver Media Center" image_source="c4z" small_image="icons/device_sm.png" large_image="icons/device_lg.png">media_service</proxy>
+		<!-- Watch: the room's video source, driving Media Center's Theater View. -->
+		<proxy proxybindingid="5002" name="JRiver Theater View" image_source="c4z" small_image="icons/device_sm.png" large_image="icons/device_lg.png">media_player</proxy>
+		<!--
+			Virtual amp. Owns the single physical HDMI to the AVR and aggregates both
+			the service and the player, so one binding serves Listen and Watch. Not
+			user-facing; it exists because a media_service has no route to a room
+			except through a device with an AV path.
+		-->
+		<proxy proxybindingid="5003" name="JRiver Virtual Switcher" image_source="c4z" small_image="icons/device_sm.png" large_image="icons/device_lg.png">avswitch</proxy>
+	</proxies>
+
+	<connections>
+		<!--
+			Topology mirrors the shipping Kodi drivers, which solve exactly this problem:
+			a browsable music service plus an on-screen-UI device, sharing one physical
+			output. An avswitch ("virtual amp") owns the single HDMI to the AVR; both the
+			media_service and the media_player feed into it internally. A media_service
+			cannot reach a room on its own - it has to route through a device that has an
+			AV path, which is why earlier attempts using a room end-point or a direct
+			audio link never made it appear in Navigator.
+		-->
+
+		<!-- ================= 5001: media_service (Listen / browse UI) ============ -->
+		<connection>
+			<id>5001</id>
+			<facing>6</facing>
+			<type>2</type>
+			<connectionname>JRiver Media Center</connectionname>
+			<consumer>False</consumer>
+			<audiosource>False</audiosource>
+			<videosource>False</videosource>
+			<linelevel>False</linelevel>
+			<classes>
+				<class>
+					<classname>MediaService</classname>
+				</class>
+			</classes>
+		</connection>
+		<!-- Control + AV link into the virtual switcher, as Kodi's music service does. -->
+		<connection proxybindingid="5001">
+			<id>1</id>
+			<facing>6</facing>
+			<type>1</type>
+			<connectionname>Music Library</connectionname>
+			<consumer>False</consumer>
+			<audiosource>False</audiosource>
+			<videosource>False</videosource>
+			<linelevel>False</linelevel>
+			<hidden>True</hidden>
+			<idautobind>51001</idautobind>
+			<classes>
+				<class>
+					<classname>LINK_JRIVER_MUSIC</classname>
+					<autobind>True</autobind>
+				</class>
+			</classes>
+		</connection>
+		<connection proxybindingid="5001">
+			<id>2001</id>
+			<type>5</type>
+			<connectionname>Music Library</connectionname>
+			<consumer>False</consumer>
+			<linelevel>False</linelevel>
+			<hidden>True</hidden>
+			<idautobind>51002</idautobind>
+			<classes>
+				<class>
+					<classname>RF_JRIVER_MUSIC</classname>
+					<autobind>True</autobind>
+				</class>
+			</classes>
+		</connection>
+
+		<!-- ================= 5002: media_player (Watch / Theater View) =========== -->
+		<connection>
+			<id>5002</id>
+			<type>2</type>
+			<connectionname>MEDIA_PLAYER</connectionname>
+			<consumer>False</consumer>
+			<linelevel>False</linelevel>
+			<classes>
+				<class>
+					<classname>MEDIA_PLAYER</classname>
+				</class>
+			</classes>
+		</connection>
+		<connection proxybindingid="5002">
+			<id>4001</id>
+			<facing>6</facing>
+			<type>6</type>
+			<connectionname>Theater View Audio to Virtual Amp</connectionname>
+			<consumer>False</consumer>
+			<audiosource>True</audiosource>
+			<videosource>False</videosource>
+			<linelevel>True</linelevel>
+			<idautobind>51003</idautobind>
+			<classes>
+				<class><classname>STEREO</classname><autobind>True</autobind></class>
+				<class><classname>DIGITAL_OPTICAL</classname><autobind>True</autobind></class>
+				<class><classname>DIGITAL_COAX</classname><autobind>True</autobind></class>
+				<class><classname>MULTI_STEREO</classname><autobind>True</autobind></class>
+			</classes>
+		</connection>
+		<connection proxybindingid="5002">
+			<id>2002</id>
+			<facing>6</facing>
+			<type>6</type>
+			<connectionname>Theater View Video to Virtual Amp</connectionname>
+			<consumer>False</consumer>
+			<audiosource>False</audiosource>
+			<videosource>True</videosource>
+			<linelevel>True</linelevel>
+			<idautobind>51004</idautobind>
+			<classes>
+				<class><classname>HDMI</classname><autobind>True</autobind></class>
+				<class><classname>COMPONENT</classname><autobind>True</autobind></class>
+				<class><classname>COMPOSITE</classname><autobind>True</autobind></class>
+			</classes>
+		</connection>
+
+		<!-- ================= 5003: avswitch (virtual amp / real output) ========== -->
+		<connection>
+			<id>5003</id>
+			<type>2</type>
+			<connectionname>AVSWITCH</connectionname>
+			<consumer>False</consumer>
+			<linelevel>True</linelevel>
+			<classes>
+				<class>
+					<classname>AVSWITCH</classname>
+				</class>
+			</classes>
+		</connection>
+		<connection proxybindingid="5003">
+			<id>3001</id>
+			<type>6</type>
+			<connectionname>Virtual Amp Audio from Theater View</connectionname>
+			<consumer>True</consumer>
+			<audiosource>False</audiosource>
+			<videosource>False</videosource>
+			<linelevel>True</linelevel>
+			<idautobind>51003</idautobind>
+			<classes>
+				<class><classname>STEREO</classname><autobind>True</autobind></class>
+				<class><classname>DIGITAL_OPTICAL</classname><autobind>True</autobind></class>
+				<class><classname>DIGITAL_COAX</classname><autobind>True</autobind></class>
+				<class><classname>MULTI_STEREO</classname><autobind>True</autobind></class>
+			</classes>
+		</connection>
+		<connection proxybindingid="5003">
+			<id>1001</id>
+			<type>6</type>
+			<connectionname>Virtual Amp Video from Theater View</connectionname>
+			<consumer>True</consumer>
+			<audiosource>False</audiosource>
+			<videosource>False</videosource>
+			<linelevel>True</linelevel>
+			<idautobind>51004</idautobind>
+			<classes>
+				<class><classname>HDMI</classname><autobind>True</autobind></class>
+				<class><classname>COMPONENT</classname><autobind>True</autobind></class>
+				<class><classname>COMPOSITE</classname><autobind>True</autobind></class>
+			</classes>
+		</connection>
+		<!-- Receiving side of the media_service link. -->
+		<connection proxybindingid="5003">
+			<id>201</id>
+			<facing>6</facing>
+			<type>1</type>
+			<connectionname>Music Library</connectionname>
+			<consumer>True</consumer>
+			<audiosource>False</audiosource>
+			<videosource>False</videosource>
+			<linelevel>False</linelevel>
+			<hidden>True</hidden>
+			<idautobind>51001</idautobind>
+			<classes>
+				<class>
+					<classname>LINK_JRIVER_MUSIC</classname>
+					<autobind>True</autobind>
+				</class>
+			</classes>
+		</connection>
+		<connection proxybindingid="5003">
+			<id>3101</id>
+			<type>6</type>
+			<connectionname>Music Library</connectionname>
+			<consumer>True</consumer>
+			<linelevel>False</linelevel>
+			<hidden>True</hidden>
+			<idautobind>51002</idautobind>
+			<classes>
+				<class>
+					<classname>RF_JRIVER_MUSIC</classname>
+					<autobind>True</autobind>
+				</class>
+			</classes>
+		</connection>
+		<!--
+			The real outputs. Bind the video OUTPUT to the AVR input the Mac's HDMI is
+			plugged into; that single binding carries both Listen and Watch.
+		-->
+		<connection proxybindingid="5003">
+			<id>4000</id>
+			<type>6</type>
+			<connectionname>Audio OUTPUT</connectionname>
+			<consumer>False</consumer>
+			<audiosource>True</audiosource>
+			<videosource>False</videosource>
+			<linelevel>True</linelevel>
+			<classes>
+				<class><classname>STEREO</classname></class>
+				<class><classname>DIGITAL_OPTICAL</classname></class>
+				<class><classname>DIGITAL_COAX</classname></class>
+			</classes>
+		</connection>
+		<connection proxybindingid="5003">
+			<id>7000</id>
+			<type>7</type>
+			<connectionname>Room Selection - OUTPUT</connectionname>
+			<consumer>False</consumer>
+			<audiosource>True</audiosource>
+			<videosource>True</videosource>
+			<linelevel>True</linelevel>
+			<classes>
+				<class><classname>AUDIO_SELECTION</classname></class>
+				<class><classname>AUDIO_VOLUME</classname></class>
+				<class><classname>VIDEO_SELECTION</classname></class>
+			</classes>
+		</connection>
+		<connection proxybindingid="5003">
+			<id>2000</id>
+			<type>5</type>
+			<connectionname>HDMI OUTPUT</connectionname>
+			<consumer>False</consumer>
+			<audiosource>False</audiosource>
+			<videosource>True</videosource>
+			<linelevel>True</linelevel>
+			<classes>
+				<class><classname>HDMI</classname></class>
+				<class><classname>COMPONENT</classname></class>
+				<class><classname>COMPOSITE</classname></class>
+			</classes>
+		</connection>
+	</connections>
+</devicedata>

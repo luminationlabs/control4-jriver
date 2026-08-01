@@ -1,0 +1,62 @@
+name: Release
+
+# Publishing a release builds the driver and attaches the .c4z to it, so users
+# can download the package without building it themselves.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to attach the build to'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install lxml
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lua5.4 luarocks
+          sudo luarocks install luacheck
+
+      - name: Lint
+        run: ./build.sh validate
+
+      - name: Test
+        run: lua5.4 test-driver.lua
+
+      - name: Build
+        run: ./build.sh
+
+      # The driver's revision is what Composer uses to detect an update, so a
+      # release whose revision has not moved would install but never upgrade.
+      - name: Check the driver revision was bumped
+        run: |
+          REVISION=$(grep -oE '<version>[0-9]+</version>' driver.xml | grep -oE '[0-9]+')
+          echo "driver.xml revision: $REVISION"
+          if [ -z "$REVISION" ]; then
+            echo "::error::No <version> found in driver.xml"
+            exit 1
+          fi
+          echo "::notice::Publishing driver revision $REVISION"
+
+      - name: Attach the package to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name || inputs.tag }}
+        run: |
+          gh release upload "$TAG" build/jriver_media_center.c4z --clobber
+          echo "::notice::Attached jriver_media_center.c4z to $TAG"
